@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: python-cronjob
+  labels:
+    name: python-cronjob
+spec:
+  schedule: "* * * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          name: python-cronjob
+          labels:
+            name: python-cronjob
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: python-cronjob
+              image: p4ck/python-job
