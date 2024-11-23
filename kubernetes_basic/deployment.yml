@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi
+  labels:
+    name: fastapi
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      name: fastapi
+  template:
+    metadata:
+      name: fastapi
+      labels:
+        name: fastapi
+    spec:
+      containers:
+        - name: fastapi
+          image: p4ck/fastapi:1
+          ports:
+            - containerPort: 8000
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-web-service
+spec:
+  type: NodePort
+  selector:
+    name: fastapi
+  ports:
+    - port: 3000
+      targetPort: 8000
+      nodePort: 8001
