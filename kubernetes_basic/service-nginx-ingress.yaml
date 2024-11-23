@@ -34,7 +34,7 @@ spec:
 
 ---
 
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: nginx-ingress
@@ -46,6 +46,10 @@ spec:
       http:
         paths:
           - path: /
+            pathType: Prefix  # Ditambahkan karena diwajibkan di API v1
             backend:
-              serviceName: nginx-service
-              servicePort: 80
+              service:
+                name: nginx-service  # "serviceName" diganti dengan "name"
+                port:
+                  number: 80        # "servicePort" diganti dengan "port.number"
+

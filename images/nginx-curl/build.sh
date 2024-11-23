@@ -1,20 +1,20 @@
 # Build image
-docker build -t khannedy/nginx-curl .
+docker build -t p4ck/curl-http .
 
 # Push image
-docker push khannedy/nginx-curl
+docker push p4ck/curl-http
 
 # Create container
-docker container create --name nginx-curl khannedy/nginx-curl
+docker container create --name curl-http p4ck/curl-http
 
 # Start container
-docker container start nginx-curl
+docker container start curl-http
 
 # See container logs
-docker container logs -f nginx-curl
+docker container logs -f curl-http
 
 # Stop container
-docker container stop nginx-curl
+docker container stop curl-http
 
 # Remove container
-docker container rm nginx-curl
+docker container rm curl-http

@@ -26,26 +26,10 @@ kind: Service
 metadata:
   name: nginx-service
 spec:
+  type: NodePort
   selector:
     name: nginx
   ports:
     - port: 80
       targetPort: 80
-
----
-
-apiVersion: networking.k8s.io/v1beta1
-kind: Ingress
-metadata:
-  name: nginx-ingress
-  labels:
-    name: nginx-ingress
-spec:
-  rules:
-    - host: nginx.pailus.local
-      http:
-        paths:
-          - path: /
-            backend:
-              serviceName: nginx-service
-              servicePort: 80
+      nodePort: 30001
