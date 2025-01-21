@@ -25,13 +25,20 @@ build:
 
 deploy:
   stage: deploy
-  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
+  image: ubuntu:20.04
   before_script:
+    - apt-get update
+    - apt-get install -y curl
+    # Install kubectl
+    - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    - chmod +x kubectl
+    - mv kubectl /usr/local/bin/
+    # Setup kubeconfig
     - mkdir -p ~/.kube
     - echo "$KUBE_CONFIG" | base64 -d > ~/.kube/config
     - chmod 400 ~/.kube/config
   script:
-    - kubectl version
+    - kubectl version --client
     - kubectl create namespace $KUBE_NAMESPACE || true
     - |
       kubectl apply -f - <<EOF
@@ -70,5 +77,6 @@ deploy:
             targetPort: 8080
         type: ClusterIP
       EOF
+    - kubectl get pods -n $KUBE_NAMESPACE
   only:
     - main
