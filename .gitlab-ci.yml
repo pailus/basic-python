@@ -39,14 +39,16 @@ deploy:
     - chmod 400 ~/.kube/config
   script:
     - kubectl version --client
-    - kubectl create namespace $KUBE_NAMESPACE || true
+    # Menghapus create namespace karena menggunakan namespace default
     - |
       kubectl apply -f - <<EOF
       apiVersion: apps/v1
       kind: Deployment
       metadata:
-        name: ${CI_PROJECT_NAME}
+        name: ${CI_PROJECT_NAME}-app
         namespace: ${KUBE_NAMESPACE}
+        labels:
+          app: ${CI_PROJECT_NAME}
       spec:
         replicas: 2
         selector:
@@ -62,19 +64,23 @@ deploy:
               image: ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
               ports:
               - containerPort: 8080
+                name: http
       ---
       apiVersion: v1
       kind: Service
       metadata:
-        name: ${CI_PROJECT_NAME}
+        name: ${CI_PROJECT_NAME}-service
         namespace: ${KUBE_NAMESPACE}
+        labels:
+          app: ${CI_PROJECT_NAME}
       spec:
         selector:
           app: ${CI_PROJECT_NAME}
         ports:
-          - protocol: TCP
+          - name: http
+            protocol: TCP
             port: 80
-            targetPort: 8080
+            targetPort: http
         type: ClusterIP
       EOF
     - kubectl get pods -n $KUBE_NAMESPACE
