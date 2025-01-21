@@ -33,14 +33,14 @@ deploy:
     - chmod 400 ~/.kube/config
   script:
     - |
-      kubectl create namespace $KUBE_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+      microk8s kubectl create namespace $KUBE_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
       
       # Update deployment image
-      kubectl set image deployment/${CI_PROJECT_NAME} \
+      microk8s kubectl set image deployment/${CI_PROJECT_NAME} \
         ${CI_PROJECT_NAME}=$DOCKER_IMAGE:$CI_COMMIT_SHA \
         -n $KUBE_NAMESPACE
       
       # Check deployment status
-      kubectl rollout status deployment/${CI_PROJECT_NAME} -n $KUBE_NAMESPACE
+      microk8s kubectl rollout status deployment/${CI_PROJECT_NAME} -n $KUBE_NAMESPACE
   only:
     - main
