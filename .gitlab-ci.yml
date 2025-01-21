@@ -1,0 +1,46 @@
+# .gitlab-ci.yml
+variables:
+  DOCKERHUB_USERNAME: ${DOCKERHUB_USERNAME}
+  DOCKER_IMAGE: "$DOCKERHUB_USERNAME/${CI_PROJECT_NAME}"
+  KUBE_NAMESPACE: "default"
+
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  before_script:
+    - docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+  script:
+    - docker build -t $DOCKER_IMAGE:$CI_COMMIT_SHA .
+    - docker push $DOCKER_IMAGE:$CI_COMMIT_SHA
+    # Tag latest juga
+    - docker tag $DOCKER_IMAGE:$CI_COMMIT_SHA $DOCKER_IMAGE:latest
+    - docker push $DOCKER_IMAGE:latest
+  only:
+    - main
+
+deploy:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  before_script:
+    - mkdir -p ~/.kube
+    - echo "$KUBE_CONFIG" | base64 -d > ~/.kube/config
+    - chmod 400 ~/.kube/config
+  script:
+    - |
+      kubectl create namespace $KUBE_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+      
+      # Update deployment image
+      kubectl set image deployment/${CI_PROJECT_NAME} \
+        ${CI_PROJECT_NAME}=$DOCKER_IMAGE:$CI_COMMIT_SHA \
+        -n $KUBE_NAMESPACE
+      
+      # Check deployment status
+      kubectl rollout status deployment/${CI_PROJECT_NAME} -n $KUBE_NAMESPACE
+  only:
+    - main
