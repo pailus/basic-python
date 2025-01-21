@@ -20,6 +20,6 @@ def get_hit_count():
 
 
 @app.get("/", response_class=PlainTextResponse)
-def hello():
+def count():
     count = get_hit_count()
     return f"Hello World! I have been seen {count} times.\n"
