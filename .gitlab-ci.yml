@@ -25,15 +25,16 @@ build:
 
 deploy:
   stage: deploy
-  image: bitnami/kubectl:latest
+  image: registry.gitlab.com/gitlab-org/cloud-deploy/aws-base:latest
   before_script:
     - mkdir -p ~/.kube
     - echo "$KUBE_CONFIG" | base64 -d > ~/.kube/config
     - chmod 400 ~/.kube/config
   script:
-    - kubectl create namespace $KUBE_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+    - kubectl version
+    - kubectl create namespace $KUBE_NAMESPACE || true
     - |
-      cat <<EOF | kubectl apply -f -
+      kubectl apply -f - <<EOF
       apiVersion: apps/v1
       kind: Deployment
       metadata:
@@ -69,6 +70,5 @@ deploy:
             targetPort: 8080
         type: ClusterIP
       EOF
-    - kubectl rollout status deployment/${CI_PROJECT_NAME} -n $KUBE_NAMESPACE
   only:
     - main
