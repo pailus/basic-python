@@ -1,0 +1,88 @@
+# .gitlab-ci.yml
+variables:
+  DOCKERHUB_USERNAME: ${DOCKERHUB_USERNAME}
+  DOCKER_IMAGE: "$DOCKERHUB_USERNAME/${CI_PROJECT_NAME}"
+  KUBE_NAMESPACE: "default"
+
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  before_script:
+    - docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
+  script:
+    - docker build -t $DOCKER_IMAGE:$CI_COMMIT_SHA .
+    - docker push $DOCKER_IMAGE:$CI_COMMIT_SHA
+    - docker tag $DOCKER_IMAGE:$CI_COMMIT_SHA $DOCKER_IMAGE:latest
+    - docker push $DOCKER_IMAGE:latest
+  only:
+    - main
+
+deploy:
+  stage: deploy
+  image: ubuntu:20.04
+  before_script:
+    - apt-get update
+    - apt-get install -y curl
+    # Install kubectl
+    - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    - chmod +x kubectl
+    - mv kubectl /usr/local/bin/
+    # Setup kubeconfig
+    - mkdir -p ~/.kube
+    - echo "$KUBE_CONFIG" | base64 -d > ~/.kube/config
+    - chmod 400 ~/.kube/config
+  script:
+    - kubectl version --client
+    # Menghapus create namespace karena menggunakan namespace default
+    - |
+      kubectl apply -f - <<EOF
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: ${CI_PROJECT_NAME}-app
+        namespace: ${KUBE_NAMESPACE}
+        labels:
+          app: ${CI_PROJECT_NAME}
+      spec:
+        replicas: 2
+        selector:
+          matchLabels:
+            app: ${CI_PROJECT_NAME}
+        template:
+          metadata:
+            labels:
+              app: ${CI_PROJECT_NAME}
+          spec:
+            containers:
+            - name: ${CI_PROJECT_NAME}
+              image: ${DOCKER_IMAGE}:${CI_COMMIT_SHA}
+              ports:
+              - containerPort: 8080
+                name: http
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: ${CI_PROJECT_NAME}-service
+        namespace: ${KUBE_NAMESPACE}
+        labels:
+          app: ${CI_PROJECT_NAME}
+      spec:
+        selector:
+          app: ${CI_PROJECT_NAME}
+        ports:
+          - name: http
+            protocol: TCP
+            port: 80
+            targetPort: http
+        type: ClusterIP
+      EOF
+    - kubectl get pods -n $KUBE_NAMESPACE
+  only:
+    - main
